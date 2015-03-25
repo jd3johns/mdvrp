@@ -59,7 +59,7 @@ rmse_train = sqrt(mean((train.Out1 - predtrain).^2))
 rmse_test = sqrt(mean((test.Out1 - predtest).^2))
 
 % Prune the tree
-prune_level = tree.PruneList(10);
+prune_level = tree.PruneList(1) - 10;
 prune_tree = prune(tree,'Level',prune_level);
 view(prune_tree,'mode','graph')
 
