@@ -93,8 +93,6 @@ legend('Test data','Prediction')
 rmse_train_prune = sqrt(mean((train.Out1 - predtrain).^2))
 rmse_test_prune = sqrt(mean((test.Out1 - predtest).^2))
 
-%% Neural Nets
-
-net = feedforwardnet(1);
-% net = train(net,train);
-% view(net)
+% Observations
+% The tree is "steppy" in that it has many discontinuities. This is an
+% artifact of the DT as it splits classification on variables.
