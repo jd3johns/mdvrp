@@ -1,6 +1,10 @@
 %% Prepare the data for processing
+% initial variables
+soilinit = 1000;
+
 folderpath = './../data/problems/';
 files = { 'p01', 'p02' };
+
 
 % grab the first fileset
 [desc, depot_desc, cust, depot] = parseProblemSet(strcat(folderpath, files{1}));
@@ -19,5 +23,7 @@ for i = 1:totalNodes
                 locations(j, 2), locations(j, 3));
     end
 end
+
+soilMat = ones(totalNodes)*soilinit - eye(totalNodes)*soilinit;
 
 %
