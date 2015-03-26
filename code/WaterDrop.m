@@ -1,4 +1,4 @@
-classdef WaterDrop < handle % inherit from handle to allow pass by ref
+classdef WaterDrop %< handle % inherit from handle to allow pass by ref
 % Intelligent Water Drop Agents
 % This class defines an agent for solving the multiple depot capacitated
 % vehicle routing problem (MDVRP). It defines the static and dynamic 
