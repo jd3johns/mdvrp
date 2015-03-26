@@ -1,4 +1,4 @@
-classdef WaterDrop % < handle % inherit from handle to allow pass by reference?
+classdef WaterDrop < handle % inherit from handle to allow pass by ref
 % Intelligent Water Drop Agents
 % This class defines an agent for solving the multiple depot capacitated
 % vehicle routing problem (MDVRP). It defines the static and dynamic 
@@ -33,48 +33,52 @@ classdef WaterDrop % < handle % inherit from handle to allow pass by reference?
    methods
    % public methods
    
-      function obj = WaterDrop(depot, 
-                               capacity, 
-                               velocity, 
-                               a_v, b_v, c_v,
-                               a_s, b_s, c_s)
+      function obj = WaterDrop(depot, capacity, velocity, ...
+                               vel_params, ...
+                               soil_params)
       % class constructor
          obj.route = [obj.route; depot];
          obj.capacity = capacity;
          obj.vel = velocity;
          
          % velocity params
-         obj.a_v = a_v;
-         obj.b_v = b_v;
-         obj.c_v = c_v;
+         obj.a_v = vel_params(1);
+         obj.b_v = vel_params(2);
+         obj.c_v = vel_params(3);
+         
+         % soil params
+         obj.a_s = soil_params(1);
+         obj.b_s = soil_params(2);
+         obj.c_s = soil_params(3);
       end
 
       function obj = updateSoil(obj, dist_mat)
-         obj.soil = obj.soil + deltaSoil(dist_mat);
+         obj.soil = obj.soil + obj.deltaSoil(dist_mat);
       end
 
       function obj = updateVelocity(obj, soil_mat)
          n_idx = length(obj.route);
-         obj.vel = obj.vel + a_v/(b_v + c_v*soil_mat(route(n_idx - 1), route(n_idx));
+         obj.vel = obj.vel + obj.a_v / (obj.b_v + obj.c_v * ...
+             soil_mat(obj.route(n_idx - 1), obj.route(n_idx)));
       end
 
       function obj = flow(obj, soil_mat, customers) % custs that haven't been visited
       % probabilistically move to a connected customer
-         probs = pathProbs(soil_mat, customers);
-         node = selectPath(probs);
+         probs = obj.pathProbs(soil_mat, customers);
+         path = obj.selectPath(probs);
 
-         obj.route = [obj.route; node];
+         obj.route = [obj.route; customers(path)];
       end
 
       function soil = deltaSoil(obj, dist_mat)
       % soil picked up along most recent path
-         soil = obj.a_s/(obj.b_s + obj.c_s*calcTime(dist_mat);
+         soil = obj.a_s/(obj.b_s + obj.c_s * obj.calcTime(dist_mat));
       end
 
       function cost = calcRouteCost(obj, dist_mat)
          cost = 0;
-         for i = 2:length(route)
-            cost = cost + dist_mat(route(i - 1), route(i))
+         for i = 2:length(obj.route)
+            cost = cost + dist_mat(obj.route(i - 1), obj.route(i));
          end
       end
    end
@@ -85,7 +89,8 @@ classdef WaterDrop % < handle % inherit from handle to allow pass by reference?
       function time = calcTime(obj, dist_mat)
       % time required to traverse an edge
          n_idx = length(obj.route);
-         time = dist_mat(route(n_idx - 1), route(n_idx))/max(obj.epsilon, obj.vel);
+         time = dist_mat(obj.route(n_idx - 1), obj.route(n_idx)) / ...
+             max(obj.epsilon, obj.vel);
       end
       
       function path = selectPath(obj, probs)
@@ -97,6 +102,7 @@ classdef WaterDrop % < handle % inherit from handle to allow pass by reference?
             runsum = runsum + sorted(i);
             if r < runsum
                path = idx(i);
+               return
             end
          end
       end
@@ -105,20 +111,20 @@ classdef WaterDrop % < handle % inherit from handle to allow pass by reference?
       % calculate the probabilities of traversing possible paths
          invsoils = zeros(length(customers),1);
          for i = 1:length(customers)
-            invsoils(i) = invSoil(customers(i), soil_mat, customers);
+            invsoils(i) = obj.invSoil(customers(i), soil_mat, customers);
          end
          sumsoils = sum(invsoils);
          
-         probs = zeros(length(customers,1));
+         probs = zeros(length(customers),1);
          for i = 1:length(customers)
-            f = invSoil(customers(i), soil_mat, customers);
+            f = invsoils(i);
             probs(i) = f/sumsoils;
          end
       end
 
       function f = invSoil(obj, customer, soil_mat, customers)
       % inverse term calculation
-         f = 1/(epsilon_s + positiveSoil(customer, soil_mat, customers));
+         f = 1/(obj.epsilon_s + obj.positiveSoil(customer, soil_mat, customers));
       end
 
       function g = positiveSoil(obj, customer, soil_mat, customers)
@@ -129,10 +135,11 @@ classdef WaterDrop % < handle % inherit from handle to allow pass by reference?
          end
          min_s = min(soils);
          
+         c_idx = find(customers == customer);
          if min_s >= 0
-            g = soils(customer);
+            g = soils(c_idx);
          else
-            g = soils(customer) - min_s;
+            g = soils(c_idx) - min_s;
          end
       end
    end
