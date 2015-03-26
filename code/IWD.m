@@ -20,16 +20,35 @@ files = { 'p01', 'p02' };
 % Build adjacency matrix row is source, col is dest
 [ distMat soilMat ] = prepareBoard(desc, depot_desc, cust, depot, soilInit)
 
-% Initialize a single agent
-iwd = WaterDrop(depot(1,1),depot_desc(1,2),velocityInit, ...
-    vel_params, soil_params)
+% Initialize agents
+drops = [];
+for i = 1:3
+    drops = [drops; WaterDrop(depot(1,1),depot_desc(1,2),velocityInit, ...
+        vel_params, soil_params)];
+end
 
-% Build a full route with one agent
+% Build a full route set with multiple agent
 customers = cust(:,1);
 while ~isempty(customers)
-    iwd = iwd.flow(soilMat,customers);
-    l = length(iwd.route);
-    customers(customers == iwd.route(l)) = [];
+    for i = 1:length(drops)
+        if isempty(customers)
+            continue;
+        end
+        iwd = drops(i);
+        iwd = iwd.flow(soilMat,customers);
+        l = length(iwd.route);
+        customers(customers == iwd.route(l)) = [];
+    
+        iwd = iwd.updateVelocity(soilMat);
+        iwd = iwd.updateSoil(distMat);
+        drops(i) = iwd;
+    end
 end
-iwd.route
+
+% Calculate total solution cost (Euclidean distance sum of routes)
+cost = 0;
+for i = 1:length(drops)
+    cost = cost + drops(i).calcRouteCost(distMat);
+end
+cost
 %
