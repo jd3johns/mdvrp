@@ -8,16 +8,21 @@ classdef WaterDrop % < handle % inherit from handle to allow pass by reference?
    properties(SetObservable = true)
    % public properties
       soil = 0;
-      vel = 0;
+      vel = 100;
       route = [];
    end
    
    properties(GetAccess = 'public', SetAccess = 'private')
    % read-only
       % velocity parameters
-      a_v = 0;
-      b_v = 0;
-      c_v = 0;
+      a_v = 1000;
+      b_v = 0.01;
+      c_v = 1;
+
+      % soil parameters
+      a_s = 1000;
+      b_s = 0.01;
+      c_s = 1;
       
       capacity = 0;
       
@@ -26,9 +31,13 @@ classdef WaterDrop % < handle % inherit from handle to allow pass by reference?
    end
    
    methods
-   % public by default
+   % public methods
    
-      function obj = WaterDrop(depot, capacity, velocity, a_v, b_v, c_v)
+      function obj = WaterDrop(depot, 
+                               capacity, 
+                               velocity, 
+                               a_v, b_v, c_v,
+                               a_s, b_s, c_s)
       % class constructor
          obj.route = [obj.route; depot];
          obj.capacity = capacity;
@@ -40,25 +49,44 @@ classdef WaterDrop % < handle % inherit from handle to allow pass by reference?
          obj.c_v = c_v;
       end
 
-      function obj = updateSoil(obj, soil_mat)
-         obj.soil = obj.soil + 0.1;%edge.soil(node, node_prev);
+      function obj = updateSoil(obj, dist_mat)
+         obj.soil = obj.soil + deltaSoil(dist_mat);
       end
 
       function obj = updateVelocity(obj, soil_mat)
          n_idx = length(obj.route);
-         obj.vel = obj.vel + a_v/(b_v + c_v*soil_mat(route(n_idx), route(n_idx - 1)));
+         obj.vel = obj.vel + a_v/(b_v + c_v*soil_mat(route(n_idx - 1), route(n_idx));
       end
 
       function obj = flow(obj, soil_mat, customers) % custs that haven't been visited
+      % probabilistically move to a connected customer
          probs = pathProbs(soil_mat, customers);
          node = selectPath(probs);
 
          obj.route = [obj.route; node];
       end
+
+      function soil = deltaSoil(obj, dist_mat)
+      % soil picked up along most recent path
+         soil = obj.a_s/(obj.b_s + obj.c_s*calcTime(dist_mat);
+      end
+
+      function cost = calcRouteCost(obj, dist_mat)
+         cost = 0;
+         for i = 2:length(route)
+            cost = cost + dist_mat(route(i - 1), route(i))
+         end
+      end
    end
    
    methods(Access = 'private')
-   % private methods
+   % helper methods
+      
+      function time = calcTime(obj, dist_mat)
+      % time required to traverse an edge
+         n_idx = length(obj.route);
+         time = dist_mat(route(n_idx - 1), route(n_idx))/max(obj.epsilon, obj.vel);
+      end
       
       function path = selectPath(obj, probs)
       % select a path from probabilities of possible edges
