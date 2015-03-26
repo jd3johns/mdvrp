@@ -1,6 +1,6 @@
 %% Prepare the data for processing
 % initial variables
-soilinit = 1000;
+soilInit = 1000;
 
 folderpath = './../data/problems/';
 files = { 'p01', 'p02' };
@@ -11,19 +11,6 @@ files = { 'p01', 'p02' };
 
 % build adjacency matrix row is source, col is dest
 
-locations = [ cust(:, 1:3); depot(:, 1:3) ];
-totalNodes = desc(3) + desc(4);
-distMat = zeros(totalNodes);
-
-distCalc = @(x1, y1, x2, y2) norm([ x1-x2 y1-y2 ], 'fro');
-
-for i = 1:totalNodes
-    for j = 1:totalNodes
-        distMat(i, j) = distCalc(locations(i, 2), locations(i, 3), ...
-                locations(j, 2), locations(j, 3));
-    end
-end
-
-soilMat = ones(totalNodes)*soilinit - eye(totalNodes)*soilinit;
+[ distMat soilMat ] = prepareBoard(desc, depot_desc, cust, depot, soilInit)
 
 %
