@@ -24,7 +24,7 @@ classdef WaterDrop < handle % inherit from handle to allow pass by ref
       b_s = 0.01;
       c_s = 1;
       
-      capacity = 0;
+      capacity = 0; % TODO: incorporate capacity
       
       epsilon = 0.001;
       epsilon_s = 0.01;
@@ -80,6 +80,17 @@ classdef WaterDrop < handle % inherit from handle to allow pass by ref
          for i = 2:length(obj.route)
             cost = cost + dist_mat(obj.route(i - 1), obj.route(i));
          end
+      end
+      
+      function obj = returnHome(obj)
+      % return to the depot
+          obj.route = [obj.route; obj.route(1)];
+      end
+      
+      function obj = reset(obj, velocity)
+          obj.soil = 0;
+          obj.vel = velocity;
+          obj.route = [obj.route(1)];
       end
    end
    
