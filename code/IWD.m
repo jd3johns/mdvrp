@@ -35,6 +35,7 @@ all_coords = [cust(:,2:3); depot(:,2:3)];
 % Build adjacency matrix row is source, col is dest
 [ distMat globalSoilMat ] = prepareBoard(desc, depot_desc, cust, depot, soilInit);
 soilMat = exp(distMat).*globalSoilMat;
+soilMat = normalizeSoilMat(soilMat, soilInit);
 globalSoilMat = soilMat;
 
 %% Simulate water drops
