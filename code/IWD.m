@@ -1,6 +1,6 @@
-clc; %close all; clear all;
+clc; close all; clear all;
 %% Variable initialization
-iterations = 50;
+iterations = 30;
 % Initial variables
 soilInit = 1000;
 velocityInit = 100;
@@ -12,10 +12,10 @@ vel_params = [a_v b_v c_v];
 soil_params = [a_s b_s c_s];
 
 % Soil updating params
-rho_o = 0.8;
+rho_o = 0.9;
 rho_n = 1 - rho_o;
 % Global soil updating params
-rho_s = 1;
+rho_s = 0.8;
 rho_iwd = -1.5;%1 - rho_s;
 
 % Data sets
@@ -34,7 +34,8 @@ all_coords = [cust(:,2:3); depot(:,2:3)];
 
 % Build adjacency matrix row is source, col is dest
 [ distMat globalSoilMat ] = prepareBoard(desc, depot_desc, cust, depot, soilInit);
-soilMat = globalSoilMat;
+soilMat = exp(distMat).*globalSoilMat;
+globalSoilMat = soilMat;
 
 %% Simulate water drops
 % Initialize agents

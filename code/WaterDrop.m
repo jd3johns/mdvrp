@@ -94,7 +94,7 @@ classdef WaterDrop %< handle % inherit from handle to allow pass by ref
       end
    end
    
-   methods(Access = 'private')
+   methods(Access = 'public')
    % helper methods
       
       function time = calcTime(obj, dist_mat)
@@ -142,7 +142,7 @@ classdef WaterDrop %< handle % inherit from handle to allow pass by ref
       % term calculation
          soils = zeros(length(customers),1);
          for i = 1:length(customers)
-            soils(i) = soil_mat(customer,customers(i));
+            soils(i) = soil_mat(obj.route(end),customers(i));
          end
          min_s = min(soils);
          
