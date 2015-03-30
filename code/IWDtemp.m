@@ -3,7 +3,8 @@ clc; close all; clear all;
 iterations = 30;
 % Initial variables
 tempInit = 3000; % initial temperature for SA
-tempDrop = 0.95; % temperature decrease rate
+temp = tempInit;
+tempDec = 0.95; % temperature decrease rate
 tempIter = 15;    % number of iterations at each step
 soilInit = 1000;
 velocityInit = 100;
@@ -40,7 +41,6 @@ all_coords = [cust(:,2:3); depot(:,2:3)];
 [ distMat globalSoilMat ] = prepareBoard(desc, depot_desc, cust, depot, soilInit);
 soilMat = exp(distMat).*globalSoilMat;
 soilMat = normalizeSoilMat(soilMat, soilInit);
-globalSoilMat = soilMat;
 
 %% Simulate water drops
 % Initialize agents
@@ -56,13 +56,21 @@ end
 
 % Best solution
 best_sol = drops;
-best_iwd = drops(1);
 best_cost = 0;
-best_route = 0;
 
 temp_counter = 0;
+
 for it = 1:(iterations*tempIter)
-    % Build a full route set with multiple agent
+    if (temp_counter>=tempIter)
+        temp_counter = 0;
+        temp = temp*tempDec;
+    end
+    % Build a full route set with multiple agents
+    % Reset the parameters of each water drop on init
+    for i = 1:length(drops)
+        drops(i) = drops(i).reset(velocityInit);
+    end
+    
     customers = cust(:,1);
     while ~isempty(customers)
         for i = 1:length(drops)
@@ -73,8 +81,9 @@ for it = 1:(iterations*tempIter)
             % Simulate water drop flow for one agent
             iwd = drops(i);
             iwd = iwd.flow(soilMat,customers);
-            n = length(iwd.route);
-            customers(customers == iwd.route(n)) = [];
+            % n = length(iwd.route);
+            % customers(customers == iwd.route(n)) = [];
+            customers(iwd.route(end)) = [];
 
             % Update water drop
             iwd = iwd.updateVelocity(soilMat);
@@ -89,54 +98,35 @@ for it = 1:(iterations*tempIter)
             soilMat(iwd.route(n), iwd.route(n - 1)) = ...
                 rho_o * soilMat(iwd.route(n), iwd.route(n - 1)) ...
                 - rho_n * dsoil;
-        end
-    end
+        end% end of looping over agents for allocation
+    end % end of customer allocation
 
+    % send agents home
     for i = 1:length(drops)
         drops(i) = drops(i).returnHome();
     end
-
+    % solution construction complete
+    
     % Calculate total solution cost (Euclidean distance; sum of routes)
-    cost = 0;
-    bestiwd = drops(1);
+    cost = 0; % cost of the solution
     for i = 1:length(drops)
         dropcost = drops(i).calcRouteCost(distMat);
         cost = cost + dropcost;
-        if dropcost < bestiwd.calcRouteCost(distMat)
-            bestiwd = drops(i);
-        end
     end
     
     % Update the best solution
-    %cost % cost of this solution
     if (cost < best_cost) || (best_cost == 0)
         best_cost = cost
         best_sol = drops;
     end
     
     % Update the global soil
-    current_best_route = bestiwd.calcRouteCost(distMat);
-    if (current_best_route < best_route) || (best_route == 0)
-        best_route = current_best_route;
-        best_iwd = bestiwd;
-        for n = 1:length(drops)
-            drop = drops(n);
-            r = drop.route;
-            k_N = 1/((length(r) - 2) - 1);
-            globalSoilMat = soilMat;
-            for i = 2:length(r)
-                globalSoilMat(r(i - 1), r(i)) = rho_s * globalSoilMat(r(i - 1), r(i)) ...
-                    + rho_iwd * k_N * drop.soil;
-            end
-        end
-        soilMat = globalSoilMat;
-    end
+    %if (cost < best_cost) || (best_cost == 0) % probablilstically accept worse tings
+        %globalSoilMat = soilMat;
+    %end
     
-    % Reset the parameters of each water drop on init
-    for i = 1:length(drops)
-        drops(i) = drops(i).reset(velocityInit);
-    end
-end
+    
+end % end solution generation
 
 % Compare the route to the solution
 [sol_cost sol_routes] = parseSolutionSet(strcat(solutionpath, solutionfiles{1}));
