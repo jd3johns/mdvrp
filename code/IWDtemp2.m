@@ -2,15 +2,17 @@ clc; close all; clear all;
 
 
 %% Variable initialization
-iterations = 30;
-pIter = 5; % # of parallel sol'ns calculated to find totalbest
+iterations = 50;
+pIter = 3; % # of parallel sol'ns calculated to find totalbest
+
+stats = zeros(iterations, 2); % rows are iteration number, columns are best/worst
 
 % Initial variables
 tempInit = 3000; % initial temperature for SA
 temp = tempInit;
 tempDec = 0.95; % temperature decrease rate
-tempIter = 1%5;    % number of iterations at each step
-soilInit = 2000;
+tempIter = 1;    % number of iterations at each step
+soilInit = 1000;
 velocityInit = 100;
 a_v = 1000; a_s = 1000;
 b_v = 0.01; b_s = 0.01;
@@ -44,7 +46,7 @@ all_coords = [cust(:,2:3); depot(:,2:3)];
 % Build adjacency matrix row is source, col is dest
 [ distMat globalSoilMat ] = prepareBoard(desc, depot_desc, cust, depot, soilInit);
 soilMat = globalSoilMat;
-%soilMat = log(distMat+1).*globalSoilMat;
+soilMat = log(distMat+1).*globalSoilMat;
 %soilMat = distMat.*globalSoilMat;
 %soilMat = exp(distMat).*globalSoilMat;
 soilMat = normalizeSoilMat(soilMat, soilInit);
@@ -72,7 +74,6 @@ clear dropstemp;
 % Best solution
 best_sol = 0;
 best_cost = 0;
-best_route = 0;
 
 %% Simulate water drops
 
@@ -91,18 +92,19 @@ for it = 1:iterations
         % Reset the parameters of each water drop on init
 
         customers = cust(:,1);
+        demand = [cust(:,1) cust(:, 5)];
         while ~isempty(customers)
 
             for i = 1:length(drops)
                 if isempty(customers)
-                    break; % stop processing this loop since allocaiton complete
+                    break; % stop processing this loop since allocation complete
                 end
 
                 % Simulate water drop flow for one agent
                 iwd = drops(i, 1, s);
-                iwd = iwd.flow(soilMat(:, :, s),customers);
-                n = length(iwd.route);
-                customers(customers == iwd.route(n)) = [];
+                iwd = iwd.flow(soilMat(:, :, s),customers, demand);
+                %n = length(iwd.route);
+                customers(customers == iwd.route(end)) = [];
                 %customers(iwd.route(end)) = [];
 
                 % Update water drop
@@ -112,7 +114,7 @@ for it = 1:iterations
 
                 % Update soil on edges
                 dsoil = iwd.deltaSoil(distMat);
-                %n = length(iwd.route);
+                n = length(iwd.route);
                 soilMat(iwd.route(n - 1), iwd.route(n), s) = ...
                     rho_o * soilMat(iwd.route(n - 1), iwd.route(n)) ...
                     - rho_n * dsoil;
@@ -153,6 +155,9 @@ for it = 1:iterations
         end
     end
     
+    % Stat updating
+    stats(it, :) = [min(parallelCost) max(parallelCost)];
+    
     % Update the best solution
     if (parallelBestCost < best_cost) || (best_cost == 0)
         best_cost = parallelBestCost
@@ -182,7 +187,7 @@ sol_cost
 best_cost
 
 %% Visualize the best solution
-figure();
+figure;
 colours = char('r', 'g', 'm', 'c', 'k', 'b');
 gplot(globalSoilMat,all_coords,'.');
 hold on;
@@ -198,3 +203,9 @@ end
 hold off;
 
 edges_use = length(find(globalSoilMat ~= 1000))
+
+% visualize the stats
+figure
+plot(stats(:, 1), 'Color', rand(1,3));
+hold on
+plot(stats(:, 2), 'Color', rand(1,3));

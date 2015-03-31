@@ -24,7 +24,8 @@ classdef WaterDrop %< handle % inherit from handle to allow pass by ref
       b_s = 0.01;
       c_s = 1;
       
-      capacity = 0; % TODO: incorporate capacity
+      capacity = 0;
+      initcapacity = 0;
       
       epsilon = 0.001;
       epsilon_s = 0.01;
@@ -39,6 +40,7 @@ classdef WaterDrop %< handle % inherit from handle to allow pass by ref
       % class constructor
          obj.route = [obj.route; depot];
          obj.capacity = capacity;
+         obj.initcapacity = capacity;
          obj.vel = velocity;
          
          % velocity params
@@ -61,13 +63,22 @@ classdef WaterDrop %< handle % inherit from handle to allow pass by ref
          obj.vel = obj.vel + obj.a_v / (obj.b_v + obj.c_v * ...
              soil_mat(obj.route(n_idx - 1), obj.route(n_idx)));
       end
-
-      function obj = flow(obj, soil_mat, customers) % custs that haven't been visited
+      
+      function obj = flow(obj, soil_mat, customers, demand) % custs that haven't been visited
       % probabilistically move to a connected customer
          probs = obj.pathProbs(soil_mat, customers);
          path = obj.selectPath(probs);
+         newCust = customers(path);
 
-         obj.route = [obj.route; customers(path)];
+         % capacitation
+         newCustDemand = demand((demand(:, 1) == newCust), 2);
+         if (obj.capacity < newCustDemand)
+             obj = obj.returnHome();
+         else
+             obj.capacity = obj.capacity-newCustDemand;
+             obj.route = [obj.route; newCust];
+         end
+         
       end
 
       function soil = deltaSoil(obj, dist_mat)
@@ -84,11 +95,15 @@ classdef WaterDrop %< handle % inherit from handle to allow pass by ref
       
       function obj = returnHome(obj)
       % return to the depot
-          obj.route = [obj.route; obj.route(1)];
+          if (obj.route(end) ~= obj.route(1))
+            obj.route = [obj.route; obj.route(1)];
+          end
+          obj.capacity = obj.initcapacity;
       end
       
       function obj = reset(obj, velocity)
           obj.soil = 0;
+          obj.capacity = obj.initcapacity;
           obj.vel = velocity;
           obj.route = [obj.route(1)];
       end
