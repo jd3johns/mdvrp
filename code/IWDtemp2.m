@@ -2,17 +2,17 @@ clc; close all; clear all;
 
 
 %% Variable initialization
-iterations = 50;
+iterations = 60;
 pIter = 3; % # of parallel sol'ns calculated to find totalbest
 
 stats = zeros(iterations, 2); % rows are iteration number, columns are best/worst
 
 % Initial variables
-tempInit = 3000; % initial temperature for SA
+tempInit = 150; % initial temperature for SA
 temp = tempInit;
 tempDec = 0.95; % temperature decrease rate
 tempIter = 1;    % number of iterations at each step
-soilInit = 1000;
+soilInit = 1000000;
 velocityInit = 100;
 a_v = 1000; a_s = 1000;
 b_v = 0.01; b_s = 0.01;
@@ -74,6 +74,7 @@ clear dropstemp;
 % Best solution
 best_sol = 0;
 best_cost = 0;
+temp_counter = 0;
 
 %% Simulate water drops
 
@@ -165,16 +166,25 @@ for it = 1:iterations
     end
     
     % Update the global soil
-    for n = 1:length(drops)
-        drop = drops(n, 1, bestIndex);
-        r = drop.route;
-        k_N = 1/((length(r) - 2) - 1);
-        for i = 2:length(r)
-            soilMat(r(i - 1), r(i), bestIndex) = rho_s * soilMat(r(i-1), r(i), bestIndex) ...
-                +rho_iwd * k_N * drop.soil;
-            soilMat(r(i), r(i-1), bestIndex) = soilMat(r(i-1), r(i), bestIndex);
-        end % end droplet splatter
-    end % end solution splatter
+    probability = exp(-(parallelBestCost - best_cost)/temp);
+    temp_counter = temp_counter + 1;
+    if (temp_counter > tempIter)
+        temp_counter = 0;
+        temp = temp*tempDec; %reduce it
+    end
+    
+    if (parallelBestCost == best_cost || probability> rand)
+        for n = 1:length(drops)
+            drop = drops(n, 1, bestIndex);
+            r = drop.route;
+            k_N = 1/((length(r) - 2) - 1);
+            for i = 2:length(r)
+                soilMat(r(i - 1), r(i), bestIndex) = rho_s * soilMat(r(i-1), r(i), bestIndex) ...
+                    +rho_iwd * k_N * drop.soil;
+                soilMat(r(i), r(i-1), bestIndex) = soilMat(r(i-1), r(i), bestIndex);
+            end % end droplet splatter
+        end % end solution splatter
+    end % end annealing acceptance
     
     globalSoilMat = soilMat(:, :, bestIndex);    
     
