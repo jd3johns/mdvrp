@@ -12,7 +12,7 @@ tempInit = 150; % initial temperature for SA
 temp = tempInit;
 tempDec = 0.95; % temperature decrease rate
 tempIter = 1;    % number of iterations at each step
-soilInit = 1000000;
+soilInit = 1000;
 velocityInit = 100;
 a_v = 1000; a_s = 1000;
 b_v = 0.01; b_s = 0.01;
@@ -80,8 +80,9 @@ temp_counter = 0;
 
 for it = 1:iterations
     % reset calcualtion variables
+    soilMat = globalSoilMat;
     for i = 1:pIter
-        soilMat(:, :, i) = globalSoilMat;
+        
         % reset droplets
         for dr = 1:length(drops)
             drops(dr, 1, i) = drops(dr, 1, i).reset(velocityInit);
@@ -103,23 +104,23 @@ for it = 1:iterations
 
                 % Simulate water drop flow for one agent
                 iwd = drops(i, 1, s);
-                iwd = iwd.flow(soilMat(:, :, s),customers, demand);
+                iwd = iwd.flow(soilMat,customers, demand);
                 %n = length(iwd.route);
                 customers(customers == iwd.route(end)) = [];
                 %customers(iwd.route(end)) = [];
 
                 % Update water drop
-                iwd = iwd.updateVelocity(soilMat(:, :, s));
+                iwd = iwd.updateVelocity(soilMat);
                 iwd = iwd.updateSoil(distMat);
                 drops(i, 1, s) = iwd;
 
                 % Update soil on edges
                 dsoil = iwd.deltaSoil(distMat);
                 n = length(iwd.route);
-                soilMat(iwd.route(n - 1), iwd.route(n), s) = ...
+                soilMat(iwd.route(n - 1), iwd.route(n)) = ...
                     rho_o * soilMat(iwd.route(n - 1), iwd.route(n)) ...
                     - rho_n * dsoil;
-                soilMat(iwd.route(n), iwd.route(n - 1), s) = ...
+                soilMat(iwd.route(n), iwd.route(n - 1)) = ...
                     rho_o * soilMat(iwd.route(n), iwd.route(n - 1)) ...
                     - rho_n * dsoil;
             end% end of looping over agents for allocation
@@ -179,14 +180,14 @@ for it = 1:iterations
             r = drop.route;
             k_N = 1/((length(r) - 2) - 1);
             for i = 2:length(r)
-                soilMat(r(i - 1), r(i), bestIndex) = rho_s * soilMat(r(i-1), r(i), bestIndex) ...
+                soilMat(r(i - 1), r(i)) = rho_s * soilMat(r(i-1), r(i)) ...
                     +rho_iwd * k_N * drop.soil;
-                soilMat(r(i), r(i-1), bestIndex) = soilMat(r(i-1), r(i), bestIndex);
+                soilMat(r(i), r(i-1)) = soilMat(r(i-1), r(i));
             end % end droplet splatter
         end % end solution splatter
     end % end annealing acceptance
     
-    globalSoilMat = soilMat(:, :, bestIndex);    
+    globalSoilMat = soilMat(:, :);    
     
 end % end solution generation
 
