@@ -18,7 +18,6 @@ a_v = 1000; a_s = 1000;
 b_v = 0.01; b_s = 0.01;
 c_v = 1; c_s = 1;
 
-
 vel_params = [a_v b_v c_v];
 soil_params = [a_s b_s c_s];
 
@@ -30,15 +29,17 @@ rho_s = 0.8;
 rho_iwd = -1.5;%1 - rho_s;
 
 % Data sets
+pind = 3; % problem index
 problempath = './../data/problems/';
-problemfiles = { 'p01', 'p02' };
+problemfiles = { 'p01', 'p02', 'p03', 'p04', 'p05' };
 
 solutionpath = './../data/solutions/';
-solutionfiles = { 'p01.res', 'p02.res' };
+solutionfiles = { 'p01.res', 'p02.res', 'p03.res', 'p04.res', 'p05.res' };
 
 %% Load and format data
 % Grab the first fileset
-[desc, depot_desc, cust, depot] = parseProblemSet(strcat(problempath, problemfiles{1}));
+[desc, depot_desc, cust, depot] = parseProblemSet(strcat(problempath, problemfiles{pind}));
+num_customers = desc(3);
 num_depots = desc(4);
 num_vehicles = desc(2);
 all_coords = [cust(:,2:3); depot(:,2:3)];
@@ -174,7 +175,7 @@ for it = 1:iterations
         temp = temp*tempDec; %reduce it
     end
     
-    if (parallelBestCost == best_cost || probability> rand)
+    if (parallelBestCost == best_cost || probability > rand)
         for n = 1:length(drops)
             drop = drops(n, 1, bestIndex);
             r = drop.route;
@@ -192,15 +193,21 @@ for it = 1:iterations
 end % end solution generation
 
 % Compare the route to the solution
-[sol_cost sol_routes] = parseSolutionSet(strcat(solutionpath, solutionfiles{1}));
+[sol_cost sol_routes] = parseSolutionSet(strcat(solutionpath, solutionfiles{pind}));
 
 sol_cost
 best_cost
 
 %% Visualize the best solution
-figure;
 colours = char('r', 'g', 'm', 'c', 'k', 'b');
+figure;
 gplot(globalSoilMat,all_coords,'.');
+
+% label each depot
+for i = (num_customers + 1):length(all_coords)
+    text(all_coords(i,1), all_coords(i,2), sprintf('<--depot %d', i - num_customers));
+end
+
 hold on;
 for i = 1:length(best_sol)
     r = best_sol(i).route;
@@ -211,12 +218,30 @@ for i = 1:length(best_sol)
     end
     gplot(A, r_coord, colours(mod(i,6)+1));
 end
+title(['Best MDVRP Routes by IWD Meta-Heuristic for ', num2str(iterations), ' Iterations']);
+xlabel('x coordinate');
+ylabel('y coordinate');
 hold off;
 
-edges_use = length(find(globalSoilMat ~= 1000))
-
 % visualize the stats
-figure
-plot(stats(:, 1), 'Color', rand(1,3));
+f = figure;
+plot(stats(:, 1), 'Color', 'b');
 hold on
-plot(stats(:, 2), 'Color', rand(1,3));
+plot(stats(:, 2), 'Color', 'r');
+title('IWD Solution Cost Iteration');
+xlabel('Iteration');
+ylabel('Route Cost');
+legend('Best solution', 'Worst Solution');
+
+% error with respect to optimal solution
+figure;
+best_sol_error = 100*(stats(:,1) - sol_cost)/sol_cost;
+worst_sol_error = 100*(stats(:,2) - sol_cost)/sol_cost;
+plot(best_sol_error, 'Color', 'b');
+hold on
+plot(worst_sol_error, 'Color', 'r');
+title('IWD Solution Error with Respect to Optimal');
+xlabel('Iteration');
+ylabel('Route Cost Error (%)');
+legend('Best solution', 'Worst Solution');
+ylim([0, 400]);
