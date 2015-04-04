@@ -29,7 +29,7 @@ rho_s = 0.8;
 rho_iwd = -1.5;%1 - rho_s;
 
 % Data sets
-pind = 3; % problem index
+pind = 1; % problem index
 problempath = './../data/problems/';
 problemfiles = { 'p01', 'p02', 'p03', 'p04', 'p05' };
 
@@ -175,7 +175,7 @@ for it = 1:iterations
         temp = temp*tempDec; %reduce it
     end
     
-    if (parallelBestCost == best_cost || probability > rand)
+    if (true)%(parallelBestCost == best_cost || probability > rand)
         for n = 1:length(drops)
             drop = drops(n, 1, bestIndex);
             r = drop.route;
