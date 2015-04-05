@@ -1,6 +1,5 @@
 clc; close all; clear all;
 
-
 %% Variable initialization
 iterations = 60;
 pIter = 3; % # of parallel sol'ns calculated to find totalbest
@@ -26,7 +25,7 @@ rho_o = 0.9;
 rho_n = 1 - rho_o;
 % Global soil updating params
 rho_s = 0.8;
-rho_iwd = -1.5;%1 - rho_s;
+rho_iwd = -1.5;
 
 % Data sets
 pind = 1; % problem index
@@ -47,16 +46,15 @@ all_coords = [cust(:,2:3); depot(:,2:3)];
 % Build adjacency matrix row is source, col is dest
 [ distMat globalSoilMat ] = prepareBoard(desc, depot_desc, cust, depot, soilInit);
 soilMat = globalSoilMat;
-soilMat = log(distMat+1).*globalSoilMat;
-%soilMat = distMat.*globalSoilMat;
-%soilMat = exp(distMat).*globalSoilMat;
+% Soil weightings based on edge length
+soilMat = log(distMat+1).*globalSoilMat; %logarithmic
+%soilMat = distMat.*globalSoilMat; %linear
+%soilMat = exp(distMat).*globalSoilMat; %exponential
 soilMat = normalizeSoilMat(soilMat, soilInit);
 globalSoilMat = soilMat; % globalSoilMat contains the soil going forward
 
 
 %% Initialize agents
-% drops = []; % TODO: Preallocate object array?
-%dropstemp = [];
 for i = 1:pIter
     dropstemp = [];
     for d = 1:num_depots % for each depot
@@ -78,7 +76,6 @@ best_cost = 0;
 temp_counter = 0;
 
 %% Simulate water drops
-
 for it = 1:iterations
     % reset calcualtion variables
     soilMat = globalSoilMat;
@@ -106,9 +103,7 @@ for it = 1:iterations
                 % Simulate water drop flow for one agent
                 iwd = drops(i, 1, s);
                 iwd = iwd.flow(soilMat,customers, demand);
-                %n = length(iwd.route);
                 customers(customers == iwd.route(end)) = [];
-                %customers(iwd.route(end)) = [];
 
                 % Update water drop
                 iwd = iwd.updateVelocity(soilMat);
@@ -129,13 +124,11 @@ for it = 1:iterations
         end % end of customer allocation
         
         % send agents home
-
         for i = 1:length(drops)
             drops(i, 1, s) = drops(i, 1, s).returnHome();
         end
     
     end % parallel solution construction
-    
     
     parallelCost = zeros(pIter, 1);
     parallelBestCost = 0;
@@ -149,6 +142,7 @@ for it = 1:iterations
         end
     end
     
+    % Get index of the best solution
     bestIndex = 0;
     for s = 1:pIter
         if parallelCost(s) == min(parallelCost)
@@ -174,8 +168,10 @@ for it = 1:iterations
         temp_counter = 0;
         temp = temp*tempDec; %reduce it
     end
-    
-    if (true)%(parallelBestCost == best_cost || probability > rand)
+   
+    % Update global soil for a better global solution
+    % or accept worse solution probabilistically (annealing) 
+    if (parallelBestCost == best_cost || probability > rand)
         for n = 1:length(drops)
             drop = drops(n, 1, bestIndex);
             r = drop.route;
